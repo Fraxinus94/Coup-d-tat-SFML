@@ -15,9 +15,22 @@ struct Bullet
     Bullet(sf::Texture& texture) { sprite.setTexture(texture); };
 };
 
+sf::Text createText(std::string string, sf::Font& font, unsigned int fontSize, sf::Color color, float posx, float posy)
+{
+    sf::Text t;
+    t.setString(string);
+    t.setFont(font);
+    t.setCharacterSize(fontSize);
+    t.setFillColor(color);
+    t.setPosition(posx, posy);
+    t.setOrigin(t.getGlobalBounds().left * 0.5f, t.getGlobalBounds().top * 0.5f);
+
+    return t;
+}
+
 int main()
 {
-    std::string title = "Coup d'état";
+    std::string title = "Coup d'Ã©tat";
     sf::RenderWindow window(sf::VideoMode(720, 480), title);
 
     window.setFramerateLimit(60);
@@ -78,13 +91,12 @@ int main()
     std::vector<int> enemiesToRemove;
 
     sf::Clock shootClock;
-    sf::Time shootCooldown = sf::milliseconds(250);
+    sf::Time shootCooldown = sf::milliseconds(300);
 
-    sf::Clock autoShootClock;
-    sf::Time autoShootCooldown = sf::milliseconds(1000);
-
-    sf::Clock chickenSoundClock;
-    sf::Time chickSoundCooldown = sf::milliseconds(1000);
+    sf::Clock autoShootClock1;
+    sf::Clock autoShootClock2;
+    //sf::Time autoShootCooldown = sf::milliseconds(1000);
+    std::vector<sf::Time> autoShootTimes = { sf::milliseconds(1000) };
 
     unsigned int score = 0;
     unsigned int highScore = 0;
@@ -92,120 +104,64 @@ int main()
     int currentWave = 1;
     int bossHitCount = 0;
     int bossHealth = 5;
-    int money = 0;
+    int money = 900000;
 
     bool paused = false;
 
-    sf::Font font;
+    sf::Font font{};
     if (!font.loadFromFile("./fonts/adam.otf")) { }
 
-    sf::Text menuText;
-    menuText.setFont(font);
-    menuText.setCharacterSize(48);
-    menuText.setFillColor(sf::Color::Red);
-    menuText.setPosition(center.x + 80.0f, center.y);
-    menuText.setOrigin(menuText.getGlobalBounds().left * 0.5f, menuText.getGlobalBounds().top * 0.5f);
+    sf::Text menuText = createText("Coup d'Ã©tat", font, 48, sf::Color::Red, center.x + 80.0f, center.y);
     bool onMenu = true;
 
-    sf::Text spaceText;
-    spaceText.setFont(font);
-    spaceText.setCharacterSize(18);
-    spaceText.setFillColor(sf::Color::Red);
-    spaceText.setPosition(center.x + 140.0f, center.y + 160.0f);
-    spaceText.setOrigin(spaceText.getGlobalBounds().left * 0.5f, spaceText.getGlobalBounds().top * 0.5f);
+    sf::Text spaceText = createText("Press 'Spacebar' to start", font, 18, sf::Color::Red, center.x + 140.0f, center.y + 160.0f);
     int spaceAlpha = 255;
     bool isIncreasing = false;
 
-    sf::Text moneyText;
-    moneyText.setFont(font);
-    moneyText.setCharacterSize(24);
-    moneyText.setFillColor(sf::Color::White);
-    moneyText.setPosition(0.0f, 90.0f);
+    sf::Text moneyText = createText("Eggs: ", font, 24, sf::Color::White, 0.0f, 90.0f);
+    moneyText.setOrigin(0.0f, 0.0f);
 
-    sf::Text scoreText;
-    scoreText.setFont(font);
-    scoreText.setCharacterSize(24);
-    scoreText.setFillColor(sf::Color::White);
-    scoreText.setPosition(0.0f, 40.0f);
+    sf::Text scoreText = createText("Score: ", font, 24, sf::Color::White, 0.0f, 40.0f);
+    scoreText.setOrigin(0.0f, 0.0f);
 
-    sf::Text livesText;
-    livesText.setFont(font);
-    livesText.setCharacterSize(24);
-    livesText.setFillColor(sf::Color::White);
-    livesText.setPosition(0.0f, 30.0f);
+    sf::Text livesText = createText("Lives: ", font, 24, sf::Color::White, 0.0f, 30.0f);
+    livesText.setOrigin(0.0f, 0.0f);
 
-    sf::Text highScoreText;
-    highScoreText.setFont(font);
-    highScoreText.setCharacterSize(24);
-    highScoreText.setFillColor(sf::Color::White);
-    highScoreText.setPosition(0.0f, 10.0f);
+    sf::Text highScoreText = createText("Highscore: ", font, 24, sf::Color::White, 0.0f, 10.0f);
+    highScoreText.setOrigin(0.0f, 0.0f);
 
-    sf::Text gameOverText;
-    gameOverText.setFont(font);
-    gameOverText.setCharacterSize(48);
-    gameOverText.setFillColor(sf::Color::White);
+    sf::Text gameOverText = createText("Game Over", font, 48, sf::Color::Red, 0.0f, 40.0f);
     bool gameOver = false;
 
-    sf::Text rText;
-    rText.setFont(font);
-    rText.setCharacterSize(18);
-    rText.setFillColor(sf::Color::Red);
+    sf::Text rText = createText("Press 'R' to restart", font, 18, sf::Color::Red, 0.0f, 0.0f);
     int rAlpha = 255;
 
-    sf::Text pausedText;
-    pausedText.setFont(font);
-    pausedText.setCharacterSize(48);
-    pausedText.setFillColor(sf::Color::Red);
+    sf::Text pausedText = createText("Paused", font, 48, sf::Color::Red, 0.0f, 0.0f);
 
-    sf::Text upgradeOneText;
-    upgradeOneText.setFont(font);
-    upgradeOneText.setCharacterSize(18);
-    upgradeOneText.setFillColor(sf::Color::Red);
+    sf::Text upgradeOneText = createText("Shoot Speed LvL: ", font, 18, sf::Color::Red, 0.0f, 0.0f);
     int shootSpeedLevel = 0;
 
-    sf::Text upgradeTwoText;
-    upgradeTwoText.setFont(font);
-    upgradeTwoText.setCharacterSize(18);
-    upgradeTwoText.setFillColor(sf::Color::Red);
+    sf::Text upgradeTwoText = createText("Auto Shoot LvL: ", font, 18, sf::Color::Red, 0.0f, 0.0f);
     int autoShootLevel = 0;
+    int autoShootLayerLevel = 0;
     int shotCount = 0;
-    sf::Time shootSpeed = sf::milliseconds(1000);
+    int autoCount = 0;
+    //sf::Time shootSpeed = sf::milliseconds(1000);
 
-    sf::Text upgradeThreeText;
-    upgradeThreeText.setFont(font);
-    upgradeThreeText.setCharacterSize(18);
-    upgradeThreeText.setFillColor(sf::Color::Red);
+    sf::Text upgradeThreeText = createText("Bullet Damage LvL: ", font, 18, sf::Color::Red, 0.0f, 0.0f);
     int shootDamageLevel = 1;
 
-    sf::Text costTextOne;
-    costTextOne.setFont(font);
-    costTextOne.setCharacterSize(18);
-    costTextOne.setFillColor(sf::Color::Red);
+    sf::Text costTextOne = createText("Cost: ", font, 18, sf::Color::Red, 0.0f, 0.0f);
 
-    sf::Text costTextTwo;
-    costTextTwo.setFont(font);
-    costTextTwo.setCharacterSize(18);
-    costTextTwo.setFillColor(sf::Color::Red);
+    sf::Text costTextTwo = createText("Cost: ", font, 18, sf::Color::Red, 0.0f, 0.0f);
 
-    sf::Text costTextThree;
-    costTextThree.setFont(font);
-    costTextThree.setCharacterSize(18);
-    costTextThree.setFillColor(sf::Color::Red);
+    sf::Text costTextThree = createText("Cost: ", font, 18, sf::Color::Red, 0.0f, 0.0f);
 
-    sf::Text buyTextOne;
-    buyTextOne.setFont(font);
-    buyTextOne.setCharacterSize(18);
-    buyTextOne.setFillColor(sf::Color::Red);
+    sf::Text buyTextOne = createText("Buy", font, 18, sf::Color::Red, 0.0f, 0.0f);
 
-    sf::Text buyTextTwo;
-    buyTextTwo.setFont(font);
-    buyTextTwo.setCharacterSize(18);
-    buyTextTwo.setFillColor(sf::Color::Red);
+    sf::Text buyTextTwo = createText("Buy", font, 18, sf::Color::Red, 0.0f, 0.0f);
 
-    sf::Text buyTextThree;
-    buyTextThree.setFont(font);
-    buyTextThree.setCharacterSize(18);
-    buyTextThree.setFillColor(sf::Color::Red);
+    sf::Text buyTextThree = createText("Buy", font, 18, sf::Color::Red, 0.0f, 0.0f);
 
     sf::RectangleShape buttonOne(sf::Vector2f(36.0f, 30.0f));
     sf::RectangleShape buttonTwo(sf::Vector2f(36.0f, 30.0f));
@@ -288,7 +244,7 @@ int main()
 
                             shootSpeedLevel++;
 
-                            shootCooldown = sf::milliseconds((int)(0.2f * shootSpeedLevel));
+                            shootCooldown -= sf::milliseconds((int)(0.2f * shootSpeedLevel));
                         }
                         pos.setPosition(0.0f, 0.0f);
                     }
@@ -299,11 +255,20 @@ int main()
                         {
                             money = money - (int)(((autoShootLevel + 1) * 5) * 0.75f);
 
+                            if (autoShootLevel % 16 == 0)
+                            {
+                                autoShootLayerLevel++;
+                                autoShootTimes.push_back(sf::milliseconds(1000));
+                            }
+
                             autoShootLevel++;
 
                             if (autoShootLevel % 5 == 0)
                             {
-                                shootSpeed -= sf::milliseconds(50);
+                                for (auto& shootSpeed : autoShootTimes)
+                                {
+                                    shootSpeed -= sf::milliseconds(50);
+                                }
                             }
                             else
                             {
@@ -355,13 +320,16 @@ int main()
             bossHealth = 5;
             shootDamageLevel = 1;
             autoShootLevel = 0;
+            autoShootLayerLevel = 0;
             shootSpeedLevel = 0;
-            shootSpeed = sf::milliseconds(1000);
-            shootCooldown = sf::milliseconds(1000);
+            //shootSpeed = sf::milliseconds(1000);
+            shootCooldown = sf::milliseconds(300);
             shotCount = 0;
             playerSprite.setPosition(center.x, center.y);
             playerSprite.setRotation(0.0f);
             gameOver = false;
+            autoShootTimes.clear();
+            autoShootTimes.push_back(sf::milliseconds(1000));
         }
 
         if (!gameOver && !onMenu && !paused)
@@ -409,7 +377,7 @@ int main()
             }
         }
 
-        if (!onMenu && !paused)
+        if (!onMenu && !paused && !gameOver)
         {
             sf::Vector2f playerPos = playerSprite.getPosition();
             if (playerPos.x < 0.0f)
@@ -453,26 +421,40 @@ int main()
                 }
             }
 
-            if (autoShootLevel > 0 && autoShootClock.getElapsedTime() >= shootSpeed)
+            //sf::Time time1 = autoShootClock1.getElapsedTime();
+            if (autoShootLevel > 0)
             {
-                shootSound.play();
-
-                for (int i = 0; i < shotCount; i++)
+                if (autoShootClock1.getElapsedTime() > autoShootTimes[0])
                 {
-                    sf::Vector2f playerPosition = playerSprite.getPosition();
-                    float angle = (i % 16) * 22.5f;
+                    for (int i = 0; i < autoShootLayerLevel; i++)
+                    {
+                        sf::Time time2 = autoShootClock2.getElapsedTime();
+                        //printf("time2: %i\n", time1.asMilliseconds());
+                        //sf::Time time = autoShootClock.getElapsedTime();
+                        if (autoShootClock2.getElapsedTime() >= autoShootTimes[i])
+                        {
+                            shootSound.play();
 
-                    Bullet bullet(beanTexture);
-                    bullet.sprite.setPosition(playerPosition);
+                            for (int j = 0; j < shotCount; j++)
+                            {
+                                sf::Vector2f playerPosition = playerSprite.getPosition();
+                                float angle = (j % 16) * 22.5f;
 
-                    float bulletSpeed = 5.0f;
-                    bullet.velocity.x = std::cos(angle * PI / 180.0f) * bulletSpeed;
-                    bullet.velocity.y = std::sin(angle * PI / 180.0f) * bulletSpeed;
+                                Bullet bullet(beanTexture);
+                                bullet.sprite.setPosition(playerPosition);
 
-                    bullets.push_back(bullet);
+                                float bulletSpeed = 5.0f;
+                                bullet.velocity.x = std::cos(angle * PI / 180.0f) * bulletSpeed;
+                                bullet.velocity.y = std::sin(angle * PI / 180.0f) * bulletSpeed;
+
+                                bullets.push_back(bullet);
+                            }
+
+                            autoShootClock2.restart();
+                        }
+                    }
+                    autoShootClock1.restart();
                 }
-
-                autoShootClock.restart();
             }
 
             for (auto& bullet : bullets)
@@ -589,20 +571,13 @@ int main()
             highScore = score;
         }
 
-        menuText.setString("Coup d'état");
-        spaceText.setString("Press 'Spacebar' to start");
         moneyText.setString("Eggs: " + std::to_string(money));
         scoreText.setString("Score: " + std::to_string(score));
         livesText.setString("Lives: " + std::to_string(playerLives));
         highScoreText.setString("Highscore: " + std::to_string(highScore));
-        gameOverText.setString("Game Over");
-        rText.setString("Press 'R' to restart");
         upgradeOneText.setString("Shoot Speed LvL: " + std::to_string(shootSpeedLevel));
         upgradeTwoText.setString("Auto Shoot LvL: " + std::to_string(autoShootLevel));
         upgradeThreeText.setString("Bullet Damage LvL: " + std::to_string(shootDamageLevel));
-        buyTextOne.setString("Buy");
-        buyTextTwo.setString("Buy");
-        buyTextThree.setString("Buy");
 
         if (playerLives <= 0 && !gameOver) 
         {
